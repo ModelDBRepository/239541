@@ -1,0 +1,38 @@
+# react_psi_y.gil - reactivation + PSI + GluR23Y
+
+include:   lltp.gil
+
+#         name          value
+define:   ind_time      10
+define:   react_time    200
+define:   psi_dur       540
+define:   psi_start     react_time
+define:   psi_stop      "psi_start + psi_dur"
+define:   y_dur         540
+define:   y_start       psi_start
+define:   y_stop        "y_start + y_dur"
+
+#setCount  id         time          count      comment
+setCount:  E1_A       ind_time      100        "stim"
+setCount:  E1_I       ind_time        0        "stim"
+setCount:  E2_A       react_time    100        "reactivation"
+setCount:  E2_I       react_time      0        "reactivation"
+
+#setInhib  id         time          level     comment
+setInhib:  psynth     psi_start     1.0       "PKMZ synthesis off"
+setInhib:  psynth     psi_stop      0.0       "PKMZ synthesis on"
+
+# GluR2Y: block endocytosis
+setInhib:  ba-ai-au   y_start     1.0
+setInhib:  ba-aip-au  y_start     1.0
+setInhib:  e2a-ai-au  y_start     1.0
+setInhib:  e2a-aip-au y_start     1.0
+
+# When GluR23Y wears off, unblock endocytosis
+setInhib:  ba-ai-au   y_stop      0.0
+setInhib:  ba-aip-au  y_stop      0.0
+setInhib:  e2a-ai-au  y_stop      0.0
+setInhib:  e2a-aip-au y_stop      0.0
+
+
+

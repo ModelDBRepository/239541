@@ -1,0 +1,11 @@
+# induction.gil - LTP induction
+
+include:   lltp.gil
+
+define:    ind_time     10
+
+#          id      time         count      comment
+#
+setCount:  E1_A    ind_time     100        "stim"
+setCount:  E1_I    ind_time       0        "stim"
+

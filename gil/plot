@@ -1,0 +1,143 @@
+#!/bin/bash
+#
+# Use gnuplot to plot the data in <data_file> (by default stdin).
+# If "-v <vcol_start>" is specified, then the columns starting with
+#   from vcol_start contain variation values for the data in columns 2, 3, ...
+#   +/- variation is plotted as a band around the plot line.
+# 
+
+usage_args="[-geometry WxH+x+y] [-t title] [-x xlabel] [-y ylabel] [-w width] [-h height] [-X xrange] [-Y yrange] [-k keyopts] [-lt ltfile] [-g] [-u] [-v vcol_start] [data_file]"
+
+
+geom=
+width=350
+height=200
+title=
+xlabel=
+ylabel=
+output_cmd=
+termopt_cmd=
+keyopts="top center"
+ltfile=
+vcol_start=
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+	-geometry) geom="-geometry $2"; shift;;
+	-t)	title="$2"; shift;;
+	-x)	xlabel="$2"; shift;;
+	-y)	ylabel="$2"; shift;;
+	-w)	width="$2"; shift;;
+	-h)	height="$2"; shift;;
+	-Y)	yrange="$2"; shift;;
+	-X)	xrange="$2"; shift;;
+	-k)	keyopts="$2"; shift;;
+	-lt)	ltfile="$2"; shift;;
+	-g)     output_cmd="set terminal png; set output \"$title.png\"";;
+	-u)     termopt_cmd="set termoption noenhanced";;
+        -v)     vcol_start="$2"; shift;;
+	--)	shift; break;;
+	-*)
+                echo >&2 \
+		"usage: $0 $usage_args"
+		exit 1;;
+	*)	break;;
+    esac
+    shift
+done
+
+# if no data_file specified, copy stdin to a tmpfile and read it
+#
+if [ $# -eq 0 ]; then
+    data_file=/tmp/$$
+    cat > $data_file
+    if [ "$title" == "" ]
+    then
+        title="<stdin>"
+    fi
+elif [ $# -eq 1 ]; then
+    data_file=$1; shift
+else
+    echo >&2 "usage: $0 $usage_args"
+    exit 1
+fi
+
+# Verify that $data_file is a regular file
+#
+if [ -d $data_file ]; then
+    echo >&2 "$data_file is a directory, doofus."
+    exit 1
+elif [ ! -f $data_file ]; then
+   echo >&2 "No such file: $data_file"
+    exit 1
+fi
+
+if [ "$title" == "" ]
+then
+    title=$data_file
+fi
+
+if [ "$xrange" == "" ]
+then
+   xrange_cmd=""
+else
+   xrange_cmd="set xrange $xrange"
+fi
+
+if [ "$yrange" == "" ]
+then
+   yrange_cmd=""
+else
+   yrange_cmd="set yrange $yrange"
+fi
+
+num_columns=`awk 'END {print NF;}' < $data_file`
+if [ "$vcol_start" != "" ]
+then
+    ((data_columns = $vcol_start - 1 ))
+else
+    ((data_columns = $num_columns ))
+fi    
+
+declare -i i
+
+plots=
+
+for (( i=2; i <= $data_columns; i++ ))
+do
+  if [ "$vcol_start" != "" ]
+  then
+     (( v = $vcol_start + $i - 2 ))
+     plots+="'$data_file' using 1:(\$$i-\$$v):(\$$i+\$$v) with filledcurves notitle lt $((i-1)),"
+  fi
+     
+  plots+="'$data_file' using 1:$i title column($i) with lines lt $((i-1))"
+  if (( i != $data_columns))
+  then 
+     plots+=","
+  fi
+done
+
+#echo "PLOTS ***  " $plots
+
+#set datafile separator "\t"
+#set terminal x11 size $width,$height background rgb 'white'
+#set terminal qt size $width,$height
+gnuplot -p $geom $ltfile - <<__END__
+reset
+set terminal qt size $width,$height
+set title "$title"
+set xlabel "$xlabel"
+set ylabel "$ylabel"
+$xrange_cmd
+$yrange_cmd
+set key $keyopts
+set style fill transparent solid 0.2 noborder
+$output_cmd
+$termopt_cmd
+
+
+plot \
+     $plots
+__END__

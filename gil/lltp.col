@@ -1,0 +1,11 @@
+# Molecule colors
+#
+
+P    0x0000FF    # Blue
+R_A  0x007F00    # Dark green
+E1_A 0xFF00FF    # Magenta
+A_I  0xFF0000    # Red
+A_IP 0x00007f    # Dark blue
+B_A  0x000000    # Black
+E2_A 0x7F0000    # Brown
+PP   0x7F7F7F    # Grey

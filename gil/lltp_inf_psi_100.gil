@@ -1,0 +1,17 @@
+# inf_psi_100.gil - PKMZ infusion, 500 molecules
+
+include:   lltp.gil
+
+define:    inf_time     10
+define:    psi_dur      540
+
+define:    psi_start    inf_time
+define:    psi_stop     "psi_start + psi_dur"
+
+#          id      time         count      comment
+#
+setCount:  P       inf_time     100         "infusion"
+
+#setInhib  id      time         level      comment
+setInhib:  psynth  psi_start    1.0        "PKMZ synthesis off"
+setInhib:  psynth  psi_stop     0.0        "PKMZ synthesis on"

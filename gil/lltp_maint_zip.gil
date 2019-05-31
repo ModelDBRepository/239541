@@ -1,0 +1,34 @@
+# maint_zip.gil - ZIP during maintenance
+
+include:   lltp.gil
+
+
+#         name          value
+define:   ind_time      10
+define:   zip_start     200
+define:   zip_stop      920
+
+#setCount  id          time        count      comment
+setCount:  E1_A        ind_time    100        "stim"
+setCount:  E1_I        ind_time      0        "stim"
+
+# Inhibit reactions catalyzed by unbound PKMZ... 
+
+setInhib:  p_ph_ri     zip_start   1.0        "ZIP on"
+setInhib:  p_ph_ba     zip_start   1.0        "ZIP on"
+setInhib:  p-au-ai     zip_start   1.0        "ZIP on"
+
+# Inhibit reactions catalyzed by bound PKMZ... 
+
+setInhib:  aip_ph_ri   zip_start   1.0        "ZIP on"
+setInhib:  aip_ph_ba   zip_start   1.0        "ZIP on"
+
+# When ZIP wears off, undo the catalysis inhibitions...
+
+setInhib:  p_ph_ri     zip_stop    0.0        "ZIP off"
+setInhib:  p_ph_ba     zip_stop    0.0        "ZIP off"
+setInhib:  p-au-ai     zip_stop    0.0        "ZIP off"
+
+setInhib:  aip_ph_ri   zip_stop    0.0        "ZIP off"
+setInhib:  aip_ph_ba   zip_stop    0.0        "ZIP off"
+

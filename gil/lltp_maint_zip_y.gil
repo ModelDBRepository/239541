@@ -1,0 +1,49 @@
+# maint_zip_y.gil - ZIP + GluR23Y during maintenance
+
+include:   lltp.gil
+
+
+#         name          value
+define:   ind_time      10
+define:   zip_dur       720
+define:   zip_start     200
+define:   zip_stop      "zip_start + zip_dur"
+define:   y_dur         740
+define:   y_start       zip_start
+define:   y_stop        "y_start + y_dur"
+
+#setCount  id          time        count      comment
+setCount:  E1_A        ind_time    100        "stim"
+setCount:  E1_I        ind_time      0        "stim"
+
+# ZIP: Inhibit reactions catalyzed by unbound PKMZ... 
+
+setInhib:  p_ph_ri     zip_start   1.0        "ZIP on"
+setInhib:  p_ph_ba     zip_start   1.0        "ZIP on"
+setInhib:  p-au-ai     zip_start   1.0        "ZIP on"
+
+# ZIP: Inhibit reactions catalyzed by bound PKMZ... 
+
+setInhib:  aip_ph_ri   zip_start   1.0        "ZIP on"
+setInhib:  aip_ph_ba   zip_start   1.0        "ZIP on"
+
+# When ZIP wears off, undo the catalysis inhibitions...
+
+setInhib:  p_ph_ri     zip_stop    0.0        "ZIP off"
+setInhib:  p_ph_ba     zip_stop    0.0        "ZIP off"
+setInhib:  p-au-ai     zip_stop    0.0        "ZIP off"
+
+setInhib:  aip_ph_ri   zip_stop    0.0        "ZIP off"
+setInhib:  aip_ph_ba   zip_stop    0.0        "ZIP off"
+
+# GluR2Y: block endocytosis
+setInhib:  ba-ai-au    y_start     1.0
+setInhib:  ba-aip-au   y_start     1.0
+setInhib:  e2a-ai-au   y_start     1.0
+setInhib:  e2a-aip-au  y_start     1.0
+
+# When GluR23Y wears off, unblock endocytosis
+setInhib:  ba-ai-au    y_stop      0.0
+setInhib:  ba-aip-au   y_stop      0.0
+setInhib:  e2a-ai-au   y_stop      0.0
+setInhib:  e2a-aip-au  y_stop      0.0

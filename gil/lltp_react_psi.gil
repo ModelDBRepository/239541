@@ -1,0 +1,20 @@
+# react_psi.gil - reactivation + PSI 
+
+include:   lltp.gil
+
+#         name          value
+define:   ind_time      10
+define:   react_time    200
+define:   psi_dur       540
+define:   psi_start     react_time
+define:   psi_stop      "psi_start + psi_dur"
+
+#setCount  id      time          count      comment
+setCount:  E1_A    ind_time      100        "stim"
+setCount:  E1_I    ind_time        0        "stim"
+setCount:  E2_A    react_time    100        "reactivation"
+setCount:  E2_I     react_time     0        "reactivation"
+
+#setInhib  id      time          level      comment
+setInhib:  psynth  psi_start     1.0        "PKMZ synthesis off"
+setInhib:  psynth  psi_stop      0.0        "PKMZ synthesis on"

@@ -1,0 +1,12 @@
+# react.gil - reactivation
+
+include:   lltp.gil
+
+define:    ind_time     10
+define:    react_time   200
+
+#setCount  id       time         count      comment
+setCount:  E1_A     ind_time     100        "stim"
+setCount:  E1_I     ind_time       0        "stim"
+setCount:  E2_A     react_time   100        "reactivation"
+setCount:  E2_I     react_time     0        "reactivation"

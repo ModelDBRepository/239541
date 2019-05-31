@@ -1,0 +1,132 @@
+Helfer, P. & Shultz, T.R. (2018)
+Coupled Molecular Feedback Loops Maintain Synaptic Long-Term Potentiation: A Computational Model
+Submitted for publication
+
+Preprint: https://arxiv.org/pdf/1712.00683.pdf
+
+This implementation by Peter Helfer to whom questions should be addressed.
+peter.helfer@mail.mcgill.ca
+
+
+----------------------------------------
+This directory tree contains three subdirectories:
+
+gil:     software for running the L-LTP model
+lib:     a C++ library of utility functions used by gil
+include: C++ include file used by gil
+
+The 'gil' directory contains:
+
+- Source code for 'gil', a C++ program that implements the Gillespie
+  algorithm for simulation of a network of molecular reactions.
+
+- Several .gil files, configuration files that specify various simulations
+
+- Python scripts, bash scripts and a few C++ programs for invoking gil,
+  plotting results etc.
+
+----------------------------------------
+
+To build and run the software, you will need a GNU/Linux system with the GNU
+Make system, a C++ compiler, the Python interpreter and GNUPlot.
+
+On a Debian Linux system, the required utilities can be installed like this:
+
+$ sudo apt-get install build-essential
+$ sudo apt-get install gnuplot
+
+----------------------------------------
+Building gil
+
+cd into the lib directory and type 'make'.
+cd into the gil directory and type 'make'.
+
+----------------------------------------
+Running gil, an example invocation:
+
+$ ./multi_lltp -v -g lltp_induction.gil 5
+
+This will invoke the multi_lltp script, telling it to run gil 5 times using
+the configuration file lltp_induction.gil and plot the simulation results as
+mean molecule counts with bands indicating standard deviation.
+
+The command "./multi_lltp -h" will show other available options.
+
+Another example: to run all defined simulations (there are eleven of them)
+10 times each and plot the results with means and standard deviation, type:
+
+$ ./multi_lltp -v 10
+
+---------------------------------------
+Output files
+
+Unless you specify a directory using the -d option, multi_lltp will
+create an output directory using the current date and time as name,
+e.g. out/2018_03_28__19_51_26. A subdirectory of the output directory
+is then created for each simulation, e.g. 'lltp_induction' in the
+first example above. Each execution of gil produces an output file
+with a name like 0.out, 1.out, etc. These files contain columns of
+counts for each simulated molecule species. The first column indicates
+simulated time in minutes.
+
+In addition to the output files from individual gil runs, multi_lltp
+generates files containing the means, standard deviation and standard error
+from all the runs (avg.out, stdevs.out, sterr.out). Selected columns from
+these files are collected in a file called stats.out, which is then used as
+input to the plot utility gilplot (described below).
+
+To plot the results of a previous invocation of multi_lltp, use the -d option
+to specify an existing output directory, for example:
+
+./multi_lltp -v -d out/2018_03_28__19_51_26
+
+---------------------------------------
+Configuration file format
+
+A .gil configuration file specifies the molecule species, reactions and other
+parameters for a simulation.
+
+Comments: Any text following a # character is a comment.
+
+Directives: each non-comment line is a directive. The following directives
+are supported:
+
+include:  read lines from the specified file
+define:   define a macro. Macros can be defined recursively and may contain
+          arithmetic expressions
+molecule: define a molecule species (name and initial count)
+reaction: define a reaction (id, formula, reaction constant and description)
+	  A '*' in a reaction id will be replaced by a unique number.
+volume:   simulated reaction volume
+idletick: when no reaction is possible, the simulation clock increments by this
+          amount (minutes) until some event fires or the simulation ends. 
+setCount: set a molecule count at a specified time
+setInhib: set inhibition level for a specified reaction at a specified time
+
+Please see the provided .gil files for example usages of the directives.
+
+---------------------------------------
+Plotting
+
+The 'plot' utility is a wrapper around gnuplot. It accepts a file of plot
+data, such as the ones produces by gil or by multi_lltp, and supports a
+number of options. Type the command "./plot --help" to see the supported
+options.
+
+The 'gilplot' utility is a wrapper around 'plot', specialized for plotting
+the results of gil simulations. Type "./gilplot --help" to see the supported
+options.
+
+---------------------------------------
+Miscellaneous
+
+'columns' is a utility that selects columns from a text file and prints them
+          in a specified order. For example, the command
+          './columns -f myfile.text t P A_I PP' will extract the columns with
+          headers t, P, A_I and PP from myfile.txt.
+
+'mat'     is a utility that applies operations to matrices given as input files.
+	  All input files must contain the same number of rows and columns. Type
+	  './mat --help' to see supported operations and options. 
+
+---------------------------------------

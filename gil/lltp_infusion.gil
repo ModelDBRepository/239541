@@ -1,0 +1,8 @@
+# infusion.gil - PKMZ infusion
+
+include:   lltp.gil
+
+#          id      time         count      comment
+#
+setCount:  P       10           100        "infusion"
+

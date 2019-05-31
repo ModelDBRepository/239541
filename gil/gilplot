@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# Plot output of a gil run
+#
+
+function usage {
+   echo 2>&1 "Usage: $0 [-w <width>] [-h <height>] [-t <title>] [-x <xlabel>] [-y <ylabel>] [-lt ltfile | -m <molecules>] [-c <colorfile>] [-v] [<datafile>]"
+
+   exit 1
+}
+
+ltfile=gil.lt
+colorfile=gil.col
+plotoptions=
+yrange="[-10:110]"
+title=" "
+width=350
+height=200
+varbands=
+
+xlabel="time (minutes)"
+ylabel="Number of molecules"
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+        --help) usage;;
+        -lt)    ltfile="$2"; shift;;
+        -m)     molecules="$2"; shift;;
+        -c)     colorfile="$2"; shift;;
+        -w)     width="$2"; shift;;
+        -h)     height="$2"; shift;;
+        -t)     title="$2"; shift;;
+        -x)     xlabel="$2"; shift;;
+        -y)     ylabel="$2"; shift;;
+        -v)     varbands=true;;
+	--)	shift; break;;
+	-*)     plotoptions="$plotoptions $1 $2"; shift;;
+	*)	if [ "$datafile" == "" ]
+                then
+                        datafile=$1;
+                else
+                        echo "extra arg: $1"
+                        usage
+                fi;;
+    esac
+    shift
+done
+
+# word counter function
+wordcount() { echo $#; }
+
+v_option=
+
+if [ "$molecules" != "" ]; then
+    molecules=`echo $molecules|sed 's/,/ /g'`
+    columns_cmd="./columns t $molecules"
+    if [ "$varbands" != "" ]; then
+        columns_cmd="$columns_cmd `echo $molecules | sed 's/\</S_'/g`"   # add the stdev columns
+        (( vcol = `wordcount $molecules` + 2 ))                  # counting the 't'
+        v_option="-v $vcol"
+    fi
+
+    ltfile=/tmp/$$.lt
+    # set -i i
+    i=1
+    for m in $molecules; do
+        color=`egrep "^\<$m\>" $colorfile | awk '{print $2}'`
+        if [ "$color" == "" ]; then
+            echo $m not found in $colorfile
+            exit
+        fi
+
+        echo "set linetype $i  lc rgb \"$color\" lw 2" >> $ltfile
+        (( i++ ))
+    done
+else
+    columns_cmd=cat
+fi
+
+cat $datafile | $columns_cmd | ./plot -t " " -k "outside spacing 4" -x "$xlabel" -y "$ylabel" -t "$title" -w "$width" -h "$height" $v_option $plotoptions -lt $ltfile

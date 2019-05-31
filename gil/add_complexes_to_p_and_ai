@@ -1,0 +1,16 @@
+# Add P.R_I, A_I.P, A_I.P.R_I, P.B_I and A_I.P.B_I to P to yield total PKMZ and
+# add A_I.P, A_I.P.R_I and A_I.P.B_I to A_I to yield total inserted AMPARs, and
+# add E1_A.R_I to E1_A to yield total E1_A
+
+#  t  P  R_I  R_A  PP  PP.R_A  E1_A  E1_I  E1_A.R_I  A_U  A_I  A_I.P  A_U.P  P.R_I  A_I.P.R_I  B_A  B_I  PP.B_I  P.B_A  A_I.P.B_A B_A.A_I B_A.A_I.P E2_A E2_I
+#  1  2  3    4    5   6       7     8     9         19   11   12     13     14     15         16   17   18      19     20        21      22        23   24
+#     p                                                        p      p      p      p                            p      p                 p
+#                                                         a    a                    a                                   a         a       a
+#                              e1          e1
+awk 'NR==1 {print} NR!=1 {$2 += $12 + $13 + $14 + $15 + $19 + $20 + $22; $11 += $12 + $15 + $20 + $21 + $22; $7 += $9; print}'
+
+#old:
+#  t  P  R_I  R_A  PP  PP.R_A  E1_A  E1_I  E1_A.R_I  A_U  A_I  A_I.P  P.R_I  A_I.P.R_I  B_A  B_I  PP.B_I  P.B_A  A_I.P.B_A  E2_A  E2_I
+#  1  2  3    4    5   6       7     8     9         10   11   12     13     14         15   16   17      18     19         20    21
+#     x                                                        x      x      x                            x      x
+#awk 'NR==1 {print} NR!=1 {$2 += $12 + $13 + $14 + $18 + $19; $11 += $12 + $14 + $19; $7 += $9; print}'

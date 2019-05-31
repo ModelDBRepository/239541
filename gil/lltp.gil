@@ -1,0 +1,160 @@
+######################################################################
+# Gillespie simulation of late LTP
+#
+# Author: Peter Helfer
+# Date: 2016-11-07
+# 
+######################################################################
+
+# Reaction constants
+#
+#         name          value
+define:   r_phos_kf     10      # R phosphorylation by PKMZ (forward)
+define:   r_phos_kr     400     # R phosphorylation by PKMZ (reverse)
+define:   r_phos_kc     100     # R phosphorylation by PKMZ (catalytic)
+
+define:   e1_r_phos_kf  10      # R phosphorylation by E1_A (forward)
+define:   e1_r_phos_kr  400     # R phosphorylation by E1_A (reverse)
+define:   e1_r_phos_kc  100     # R phosphorylation by E1_A (catalytic)
+
+define:   r_deph_kf     4       # R dephosphorylation (forward)
+define:   r_deph_kr     400     # R dephosphorylation (reverse)
+define:   r_deph_kc     100     # R dephosphorylation (catalytic)
+
+define:   b_phos_kf     1       # BRAG phosphorylation (forward)
+define:   b_phos_kr     400     # BRAG phosphorylation (reverse)
+define:   b_phos_kc     20      # BRAG phosphorylation (catalytic)
+
+define:   b_deph_kf     1       # BRAG dephosphorylation (forward)
+define:   b_deph_kr     400     # BRAG dephosphorylation (reverse)
+define:   b_deph_kc     0.06    # BRAG dephosphorylation (catalytic)
+
+define:   a_endo_kf     10      # catalyzed AMPAR endocytosis (forward)
+define:   a_endo_kr     400     # catalyzed AMPAR endocytosis (reverse)
+define:   a_endo_kc     4       # catalyzed AMPAR endocytosis (catalytic)
+
+define:   a_exo_kf      0.4     # catalyzed AMPAR insertion (forward)
+define:   a_exo_kr      400     # catalyzed AMPAR insertion (reverse)
+define:   a_exo_kc      20      # catalyzed AMPAR insertion (catalytic)
+
+define:   p_degr        0.65    # PKMZ degradation when not bound to A_I
+define:   p_ai_degr     0.0001  # PKMZ degradation when bound to A_I
+# Containment volume
+#
+volume:   1.0
+
+idletick: 0.1
+
+
+######################################################################
+# Molecules
+#         id       count  description
+#
+molecule: P          0    "Unbound PKMZ"
+molecule: R_I      100    "unphosphorylated PKMZ mRNA (inactive)"
+molecule: R_A        0    "phosphorylated PKMZ mRNA (active)"
+molecule: PP       100    "phosphatase"
+molecule: PP.R_A     0    "PP + R_A complex"
+molecule: E1_A       0    "stimulation enzyme, active"
+molecule: E1_I     100    "stimulation enzyme, inactive"
+
+molecule: E1_A.R_I   0    "E1_A + R_I complex"
+
+molecule: A_U      100    "Uninserted GluR2 AMPAR"
+molecule: A_I        0    "Inserted GluR2 AMPAR"
+molecule: A_I.P      0    "PKMZ bound to inserted AMPAR"
+molecule: A_U.P      0    "PKMZ bound to uninserted AMPAR"
+
+molecule: P.R_I      0    "P + R_I complex" 
+molecule: A_I.P.R_I  0    "A_I + P + R_I complex" 
+
+molecule: B_A      100    "Active BRAG1"
+molecule: B_I        0    "Inactive BRAG1"
+molecule: PP.B_I     0    "PP + B_I complex"
+molecule: P.B_A      0    "P + B_A complex" 
+molecule: A_I.P.B_A  0    "A_I + P + B_A complex" 
+
+molecule: B_A.A_I    0    "B_A + A_I complex"
+molecule: B_A.A_I.P  0    "B_A + A_I + P complex"
+molecule: E2_A       0    "reactivation enzyme, active"
+molecule: E2_I     100    "reactivation enzyme, inactive"
+
+######################################################################
+# Reactions
+#         id         formula                            k          description                        # in paper
+
+# mRNA activation
+reaction: p_ph_ri    "P + R_I ---> P.R_I"               r_phos_kf  "Formation of P.R_I complex"       #  1 -
+reaction: r*         "P.R_I ---> P + R_I"               r_phos_kr  "Dissolution of P.R_I complex"     #  2 -
+reaction: r*         "P.R_I ---> P + R_A"               r_phos_kc  "R_I phosphorylation"              #  3 -
+
+# mRNA deactivation
+reaction: r*         "PP + R_A ---> PP.R_A"             r_deph_kf  "Formation of PP + R_A complex"    #  4 -
+reaction: r*         "PP.R_A ---> PP + R_A"             r_deph_kr  "Dissolution of PP.R_A complex"    #  5 -
+reaction: r*         "PP.R_A ---> PP + R_I"             r_deph_kc  "R_A dephosphorylation"            #  6 -
+
+# PKMZ synthesis/degradation
+reaction: psynth     "R_A ---> R_A + P"                 0.20        "PKMZ synthesis"                  #  7 -
+reaction: pdegr      "P ---> 0"                         p_degr      "Degradation of free PKMZ"        #  8 -
+
+# BRAG2 deactivation
+reaction: p_ph_ba    "P + B_A ---> P.B_A"               b_phos_kf  "Formation of P.B_A complex"       #  9 -
+reaction: r*         "P.B_A ---> P + B_A"               b_phos_kr  "Dissolution of P.B_A complex"     # 10 -
+reaction: r*         "P.B_A ---> P + B_I"               b_phos_kc  "R_A phosphorylation"              # 11 -
+
+# BRAG1 activation
+reaction: r*         "PP + B_I ---> PP.B_I"             b_deph_kf  "Formation of PP + B_I complex"    # 12 -
+reaction: r*         "PP.B_I ---> PP + B_I"             b_deph_kr  "Dissolution of PP.B_I complex"    # 13 -
+reaction: r*         "PP.B_I ---> PP + B_A"             b_deph_kc  "BRAG1 dephosphorylation"          # 14 -
+
+# PKMZ-catalyzed AMPAR trafficking into PSD
+reaction: p-au-ai    "P + A_U ---> A_U.P"               a_exo_kf   "Formation of P.A_U complex"       # 15 -
+reaction: r*         "A_U.P ---> P + A_U"               a_exo_kr   "Dissolution of A_U.P complex"     # 16 -
+reaction: r*         "A_U.P ---> P + A_I"               a_exo_kc   "P-catalyzed AMPAR insertion"      # 17 -
+
+reaction: r*         "A_U.P ---> A_U"                   p_degr     "Degradation of PKMZ bound to A_U" #
+
+# BRAG2-catalyzed AMPAR endocytosis
+reaction: ba-ai-au   "B_A + A_I ---> B_A.A_I"           a_endo_kf  "Formation of B_A.A_I complex"     # 18 -
+reaction: r*         "B_A.A_I ---> B_A + A_I"           a_endo_kr  "Dissolution of B_A.A_I complex"   # 19 -
+reaction: r*         "B_A.A_I ---> B_A + A_U"           a_endo_kc  "BRAG-catalyzed AMPAR endocytosis" # 20 -
+
+# Constitutive AMPAR trafficking
+reaction: r*         "A_U ---> A_I"                     0.05        "Basal AMPAR exocytosis"          # 21 -    
+reaction: r*         "A_I ---> A_U"                     0.005      "spontaneous AMPAR endocytosis"    # 22 -
+
+# PKMZ binding to/detaching from AMPAR
+reaction: r*         "P + A_I ---> A_I.P"               1.0        "Inserted AMPAR binds PKMZ"        # 23 -         
+reaction: r*         "A_I.P ---> A_I"                   p_ai_degr  "Degradation of PKMZ bound to A_I" # 24 - 
+
+# BRAG2-catalyzed endocytosis of AMPAR with attached PKMZ
+reaction: ba-aip-au  "B_A + A_I.P ---> B_A.A_I.P"       a_endo_kf  "Formation of B_A.A_I.P complex"   # 25 -
+reaction: r*         "B_A.A_I.P ---> B_A + A_I.P"       a_endo_kr  "Dissolution of B_A.A_I.P complex" # 26 -
+reaction: r*         "B_A.A_I.P ---> B_A + A_U + P"     a_endo_kc  "BRAG-catalyzed AMPAR endocytosis" # 27 -
+
+# Constitutive endocytosis of AMPAR with attached PKMZ
+reaction: r*         "A_I.P ---> A_U + P"               0.005      "spontaneous AMPAR endocytosis"    # 28 -
+
+# mRNA activation catalyzed by PKMZ bound to AMPAR
+reaction: aip_ph_ri  "A_I.P + R_I ---> A_I.P.R_I"       r_phos_kf  "Formation of A_I.P.R_I complex"   # 29 -
+reaction: r*         "A_I.P.R_I ---> A_I.P + R_I"       r_phos_kr  "Dissolution of A_I.P.R_I complex" # 30 -
+reaction: r*         "A_I.P.R_I ---> A_I.P + R_A"       r_phos_kc  "R_I phosphorylation"              # 31 -
+
+# BRAG2 deactivation catalyzed by PKMZ bound to AMPAR
+reaction: aip_ph_ba  "A_I.P + B_A ---> A_I.P.B_A"       b_phos_kf  "Formation of A_I.P.B_A complex"   # 32 -
+reaction: r*         "A_I.P.B_A ---> A_I.P + B_A"       b_phos_kr  "Dissolution of A_I.P.B_A complex" # 33 -
+reaction: r*         "A_I.P.B_A ---> A_I.P + B_I"       b_phos_kc  "R_A phosphorylation"              # 34 -
+
+# Reactions catalyzed by NMDAR-stimulation-activated enzyme  E1
+reaction: e1_ph_ri   "E1_A + R_I ---> E1_A.R_I"         e1_r_phos_kf  "Formation of E1_A.R_I complex"    # 35 -
+reaction: r*         "E1_A.R_I ---> E1_A + R_I"         e1_r_phos_kr  "Dissolution of E1_A.R_I complex"  # 36 -
+reaction: r*         "E1_A.R_I ---> E1_A + R_A"         e1_r_phos_kc  "R_I phosphorylation"              # 37 -
+
+# Deactivation of NMDAR-stimulation-activated enzyme  E1
+reaction: r*         "E1_A ---> E1_I"                   0.3        "E1_A deactivation"                # 38 -
+
+# Reactions catalyzed by reactivation-activated enzyme  E2
+
+reaction: e2a-ai-au  "E2_A + A_I ---> E2_A + A_U"       0.1        "E2_A-catalyzed AMPAR endocytosis" # 39 -
+reaction: e2a-aip-au "E2_A + A_I.P ---> E2_A + A_U + P" 0.1        "E2_A-catalyzed AMPAR endocytosis" # 40 -
+reaction: r*         "E2_A ---> E2_I"                   0.5        "E2_A deactivation"                # 41 -

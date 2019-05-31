@@ -1,0 +1,18 @@
+# maint_psi.gil - PSI during maintenance
+
+include:   lltp.gil
+
+define:    ind_time     10
+define:    psi_dur      90
+
+define:    psi_start    100
+define:    psi_stop     "psi_start + psi_dur"
+
+#setCount  id      time         count      comment
+setCount:  E1_A    ind_time       100        "stim"
+setCount:  E1_I    ind_time         0        "stim"
+
+
+#setInhib  id      time         level      comment
+setInhib:  psynth  psi_start    1.0        "PKMZ synthesis off"
+setInhib:  psynth  psi_stop     0.0        "PKMZ synthesis on"

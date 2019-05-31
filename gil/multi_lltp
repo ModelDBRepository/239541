@@ -1,0 +1,191 @@
+#!/usr/bin/env python
+#
+#
+# Run the lltp test cases multiple times, collect the outputs in
+# per-testcase directories, and calculate means and stdev
+# Plot the means of the pertinent variables. If -v is specified,
+# then also plot stdev as variation bands
+
+from __future__ import print_function
+import sys, os, time, subprocess, getopt, re
+
+class TestCase :
+    def __init__(self, gilFile, stopTime, molecules, title):
+        self.gilFile = gilFile
+        self.stopTime = stopTime
+        self.molecules = molecules
+        self.title = title
+
+testCases = [
+    TestCase("lltp_induction",    300, "R_A,P,A_I,E1_A",      "NMDAR stimulation"),
+    TestCase("lltp_ind_psi",      300, "R_A,P,A_I,E1_A",      "NMDAR stimulation + PSI"),
+    TestCase("lltp_ind_zip",      300, "R_A,P,A_I,E1_A",      "NMDAR stimulation + ZIP"),
+    TestCase("lltp_infusion",     300, "R_A,P,A_I",           "PKMZ infusion"),
+    TestCase("lltp_inf_psi_100", 1200, "R_A,P,A_I",           "PKMZ infusion + PSI"),
+    TestCase("lltp_maint_psi_90",1200, "R_A,P,A_I,E1_A",      "PSI during maintenance"),
+    TestCase("lltp_react",        300, "R_A,P,A_I,E1_A,E2_A", "Reactivation"),
+    TestCase("lltp_react_psi",   1200, "R_A,P,A_I,E1_A,E2_A", "Reactivation + PSI"),
+    TestCase("lltp_react_psi_y", 1200, "R_A,P,A_I,E1_A,E2_A", "Reactivation + PSI + GluR2_3_Y"),
+    TestCase("lltp_maint_zip",   1200, "R_A,P,A_I,E1_A",      "ZIP during maintenance"),
+    TestCase("lltp_maint_zip_y", 1200, "R_A,P,A_I,E1_A",      "ZIP + GluR2_3_Y during maintenance")
+]
+
+pname=''
+def usage():
+    print('Usage: ' + pname + ' [-h|--help] [-r] [-s|--small] [-v|vbands] [-g|--gilFile <gilFile>] [-d|--dir <dir>] [<numRuns>]')
+    print('  -r: recalculate avg, stdev and sterr (only with <numRuns> == 0)')
+    print('  -s: small plot with no legend')
+    print('  -v: plot variation (error) bands')
+    print('  -g: gilFile[s] to run (default: all of them)')
+    print('  -d: output base directory. Default is out/yyyy_mm_dd__hh_mm_ss')
+    print('        Subdirectories will be created for each test case')
+    print('  <numRuns>: number of runs of each test case. Default is 0')
+    print('        If <numRuns> == 0, then plot existing data in <dir>')
+
+    sys.exit(2)
+    
+def main():
+    pname = os.path.basename(sys.argv[0])
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hrsg:d:v", ["help", "recalc", "small", "gilFile=", "dir=", "vbands"])
+    except getopt.GetoptError as err:
+        print(err)
+        sys.exit(2)
+
+    small = False
+    recalc = False
+    gilFiles = []
+    outBaseDir = ''
+    vflag = ''
+    numRuns = 0
+
+    for opt, val in opts:
+        if opt in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif opt in ("-s", "--small"):
+            small = True
+        elif opt in ("-r", "--recalc"):
+            recalc = True
+        elif opt in ("-d", "--dir"):
+            outBaseDir = val
+        elif opt in ("-g", "--gilFile"):
+            gilFiles = gilFiles + [val]
+        elif opt in ("-v", "--vbands"):
+            vflag = "-v"
+        else:
+            assert False, "unhandled option"
+
+    if (small):
+        plotFlags="-w 300 -h 200 -c lltp.col -k off " + vflag
+    else:
+        plotFlags="-w 800 -h 500 -c lltp.col " + vflag
+
+    
+
+    if len(args) > 1:
+        print('Too many arguments')
+        sys.exit(2)
+    elif (len(args) == 1):
+        try:
+            numRuns = int(args[0])
+        except:
+            print('Bad value for numRuns: ' + args[0]);
+            sys.exit(2)
+
+    selectedTestCases = []
+    for gf in gilFiles:
+        # strip .gil suffix
+        m = re.match('(.*)\.gil$', gf)
+        if m:
+            gf = m.group(1)
+            
+        found = False
+        for tc in testCases:
+            if (gf == tc.gilFile):
+                found = True
+                selectedTestCases = selectedTestCases + [tc]
+                break
+        if (not found):
+            print('Unknown gilFile: ' + gf)
+            sys.exit(2)
+
+    if (len(selectedTestCases) == 0):
+        selectedTestCases = testCases
+    
+
+    if (numRuns == 0):
+        if (outBaseDir == ''):
+            print('Either -d <dir> or <numRuns> != 0 must be specified')
+            sys.exit(2)
+        if (not os.path.isdir(outBaseDir)):
+            print("'" + outBaseDir + "' is not a directory (must exist when numRuns == 0)")
+            sys.exit(2)
+    else:
+        if (outBaseDir == ''):
+            outBaseDir = 'out' + '/' + time.strftime('%Y_%m_%d__%H_%M_%S')
+
+        if (os.path.isdir(outBaseDir)):
+            print("'" + outBaseDir + "' already exists (not ok when numRuns != 0)")
+            sys.exit(2)
+        
+    for tc in selectedTestCases:
+        outDir = outBaseDir + '/' + tc.gilFile
+        avgFile = outDir + '/' + 'avg.out'
+        stdevsFile = outDir + '/' + 'stdevs.out'
+        sterrFile = outDir + '/' + 'sterr.out'
+        statsFile = outDir + '/' + 'stats.out'
+
+        if (numRuns != 0):
+            os.makedirs(outDir)
+            procs = []
+            
+            for i in range(numRuns):
+                outFile = outDir + '/' + str(i) + '.out'
+                cmd = ("./gil " + tc.gilFile +
+                       " -stop " + str(tc.stopTime) +
+                       "| ./add_complexes_to_p_and_ai" +
+                       "> " + outFile)
+                p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                procs.append(p)
+
+            exitCodes = [p.wait() for p in procs]
+            print('Exit codes(' + tc.gilFile + '): ', end='')
+            print(exitCodes)
+
+            outputs = [p.communicate()[0] for p in procs]
+            print('Outputs(' + tc.gilFile + '): ', end='')
+            print(outputs)
+
+        if ((numRuns != 0) or recalc):
+            procs = []
+
+            cmd = './mat -hdr -ind avg ' + outDir + '/[0-9]*.out > ' + avgFile
+            p = subprocess.Popen(cmd, shell=True)
+            procs.append(p)
+
+            cmd = './mat -hdr -ind -pref S_ stdevs ' + outDir + '/[0-9]*.out > ' + stdevsFile
+            p = subprocess.Popen(cmd, shell=True)
+            procs.append(p)
+
+            cmd = './mat -hdr -ind -pref E_ sterr ' + outDir + '/[0-9]*.out > ' + sterrFile
+            p = subprocess.Popen(cmd, shell=True)
+            procs.append(p)
+
+            exitCodes = [p.wait() for p in procs]
+            cmd = ("paste " + avgFile + " " + stdevsFile + " " + sterrFile + " | " +
+                   " ./columns t A_I P R_A E1_A E2_A   S_A_I S_P S_R_A S_E1_A S_E2_A > " + statsFile)
+            p = subprocess.Popen(cmd, shell=True)
+            p.wait()
+
+        cmd = ("./gilplot " + plotFlags +
+               " -m " + tc.molecules +
+               " -Y [0:120] " +
+               " -t " + '"' + tc.title + '" < ' + statsFile)
+        subprocess.Popen(cmd, shell=True)
+        print(cmd)
+
+
+if __name__ == "__main__":
+    main()
+
